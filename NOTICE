@@ -1,0 +1,16 @@
+Voxt Fast
+Copyright 2026 the Voxt Fast authors
+
+This repository contains:
+
+- Voxt/: the Voxt macOS app from sgl-project/sglang-omni (https://github.com/sgl-project/sglang-omni,
+  commit 8b81cda35, directory Voxt/), Apache-2.0, Copyright the Voxt and SGLang-Omni authors,
+  with the changes listed in README.md.
+- engines/asr/: a Qwen3-ASR inference engine. Parts are ported from SGLang-Omni (Apache-2.0) and
+  MLX (MIT, Copyright Apple Inc.); see engines/asr/NOTICE.
+- engines/llm/: a Qwen3.5 inference engine built on mlx-swift and mlx-swift-lm (MIT, Copyright
+  Apple Inc.), with patches to both in engines/llm/patches/; see engines/llm/NOTICE. Files in
+  engines/llm/Sources/VoxtLLMEngine/VoxtReplica are copied from Voxt (Apache-2.0).
+- adapter/: an implementation of the interface of SGLang-Omni's qwen3_asr_server (Apache-2.0).
+
+The release build bundles SGLang-Omni's native runtime (Apache-2.0) and the MLX library (MIT).
