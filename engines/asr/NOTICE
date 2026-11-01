@@ -1,0 +1,11 @@
+Third-party code in this engine:
+
+- kernels/third_party/mlx: Metal kernel headers of MLX 0.32.3 (MIT, Copyright Apple Inc.),
+  unchanged; see kernels/third_party/mlx/LICENSE.
+- kernels/dec_*.metal, kernels/enc_*.metal: several kernels are ports of MLX 0.32.3 kernels
+  (rms_norm, rope, sdpa_vector, quantized matmul, steel GEMM / addmm) so that the engine
+  reproduces MLX's numerics (MIT, Copyright Apple Inc.).
+- src/tokenizer.mm, src/prompt.cpp, src/text.cpp: ported from SGLang-Omni (Apache-2.0,
+  Copyright the SGLang-Omni authors), sglang_omni_mlx/native/src/common/{tokenizer,text}.cpp and
+  qwen3_asr/{qwen3_asr_transcriber,qwen3_audio}.cpp. The pre-tokenizer split uses
+  NSRegularExpression (ICU) instead of pcre2; NFC normalization uses CoreFoundation.
