@@ -9,12 +9,12 @@ Voxt Fast 是 macOS 听写应用 [Voxt](https://github.com/sgl-project/sglang-om
 
 ## 效果
 
-测试机是 MacBook Pro（M4 Pro，48 GB），表中是中位数。
+测试机是 MacBook Pro（M4 Pro，48 GB），表中是中位数。两行数字都是本仓库的引擎在测试机空闲时，用各自优化任务的评分器测得的。
 
 | 环节 | 原版 | Voxt Fast |
 |---|---|---|
-| 说话时屏幕出字的延迟（短 / 中 / 长句） | 319 / 397 / 388 ms | 59 / 82 / 98 ms |
-| 说完后润色完成的耗时（短 / 中 / 长段） | 1.57 / 1.97 / 3.83 s | 0.24 / 0.29 / 0.74 s |
+| 说话时屏幕出字的延迟（短 / 中 / 长句） | 319 / 397 / 388 ms | 64 / 83 / 98 ms |
+| 说完后润色完成的耗时（短 / 中 / 长段） | 1.57 / 1.97 / 3.83 s | 0.20 / 0.27 / 0.70 s |
 
 两个“原版”的含义：
 
@@ -25,8 +25,8 @@ Voxt Fast 是 macOS 听写应用 [Voxt](https://github.com/sgl-project/sglang-om
 
 **正确性**：
 
-- **语音识别**：392 条中英文和中英混合的测试录音，错误率不高于原版。说完后插入的最终文字走引擎的离线精确路径，和预览文字无关。
-- **润色**：384 条测试输入里，377 条输出与 Voxt 原版逐字相同。其余几条只在模型几乎打平的位置选了另一个词，评分器校准过，这种差异属于正常的浮点误差。
+- **语音识别**：392 条中英文和中英混合的测试录音，整体错误率 4.12%，原版为 4.42%。说完后插入的最终文字走引擎的离线精确路径，和预览文字无关。
+- **润色**：384 条测试输入里，378 条输出与 Voxt 原版逐字相同。其余几条只在模型几乎打平的位置选了另一个词，评分器校准过，这种差异属于正常的浮点误差。
 
 **内存**：润色引擎的峰值约 5.9 GB，原版为 5.6 GB。识别引擎约 2.6 GB。
 
@@ -83,7 +83,7 @@ defaults write com.voxt.Voxt.fast VoxtFastLLMDisabled -bool true
 - **内核改动**：
   - 编译后的验证前向；
   - 每次处理 4 行的 GDN Metal 内核；
-  - 16 行的量化矩阵乘法分块；
+  - 9 行和 12 到 16 行的量化矩阵乘法使用 16 行分块；
   - 预填充阶段只对最后一行算 logits。
 
 对 mlx-swift 和 mlx-swift-lm 的改动都在 `engines/llm/patches/` 里。
@@ -126,6 +126,7 @@ engines/llm/scripts/build.sh  # -> engines/llm/build/bin/voxt-llm-engine
 | `engines/llm/` | Qwen3.5-4B 润色引擎（Swift / MLX），以及对 mlx-swift、mlx-swift-lm 的补丁 |
 | `adapter/` | Voxt 的本地识别服务接口，背后是 `asr_engine` |
 | `scripts/build-app.sh` | 编译并打包整个应用 |
+| `docs/` | 两次优化的结果卡片（PDF） |
 
 ## 与 Voxt 原版的差异
 
