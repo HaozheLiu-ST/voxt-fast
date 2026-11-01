@@ -113,6 +113,7 @@ final class AppUpdateManagerTests: XCTestCase {
     func testSparkleIsDisabledForDevelopmentAndTestHostBundles() {
         XCTAssertFalse(AppUpdateManager.shouldEnableSparkle(bundleIdentifier: "com.voxt.Voxt.dev"))
         XCTAssertFalse(AppUpdateManager.shouldEnableSparkle(bundleIdentifier: "com.voxt.Voxt.testhost"))
+        XCTAssertFalse(AppUpdateManager.shouldEnableSparkle(bundleIdentifier: "com.voxt.Voxt.fast"))
     }
 
     @MainActor

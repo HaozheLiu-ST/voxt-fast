@@ -584,7 +584,9 @@ final class AppUpdateManager: NSObject, ObservableObject, SPUStandardUserDriverD
             return true
         }
 
+        // Voxt Fast (.fast) is not an official release: Sparkle would replace it with one.
         return !bundleIdentifier.hasSuffix(".dev") && !bundleIdentifier.hasSuffix(".testhost")
+            && !bundleIdentifier.hasSuffix(".fast")
     }
 
     private static func canUseBetaFeed(environment: [String: String]) -> Bool {
