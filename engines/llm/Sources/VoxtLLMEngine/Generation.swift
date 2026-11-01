@@ -766,16 +766,17 @@ nonisolated func runGeneration(
             }
 
             acceptedDrafts += accepted
-            // Adapt the draft length to the acceptance rate: a short verify forward costs
-            // little, a long one wastes ~60 ms when the model is rewriting.
+            // Adapt the draft length to the acceptance rate. A verify forward of 9 to 16 rows
+            // costs about the same (~38 ms, one 16-row matmul tile), so a poorly or partly
+            // accepted round keeps up to 15 draft tokens; a well accepted one goes back to 32.
             let rate = Float(accepted) / Float(draft.count)
             zeroRun = accepted == 0 ? zeroRun + 1 : 0
             if rate < 0.25 {
-                draftCap = max(2, min(draftCap, 4))
+                draftCap = max(2, min(draftCap, 15))
             } else if rate > 0.5 {
                 draftCap = maxDraft
             } else {
-                draftCap = max(4, min(draftCap, 8))
+                draftCap = 15
             }
 
             var newTokens = Array(draft.prefix(accepted))

@@ -139,9 +139,9 @@
    int bm = 32;
    int bn = 32;
 +  int bk = 32;
-+  // 12 to 16 rows: a 16-row tile costs 0.62-0.75x of the 32-row one and computes
++  // 9 and 12 to 16 rows: a 16-row tile costs 0.62-0.75x of the 32-row one and computes
 +  // every row the same way (same 32-wide k blocks in the same order).
-+  if (transpose && M >= 12 && M <= 16) {
++  if (transpose && (M == 9 || (M >= 12 && M <= 16))) {
 +    bm = 16;
 +  }
 +  // M = 32k + r with 1 <= r <= 16: the 32-row tile covers rows [0, 32k) and a 16-row
@@ -156,7 +156,7 @@
  
    std::string kname;
    kname.reserve(64);
-@@ -734,9 +746,23 @@
+@@ -734,9 +746,9 @@
        bits,
        transpose ? (aligned ? "_alN_true" : "_alN_false") : "",
        batched ? "_batch_1" : "_batch_0");
@@ -165,6 +165,18 @@
 -  if (transpose) {
 +  if (transpose && bm != 32) {
 +    concatenate(kname, "_bm_", bm, "_bn_", bn, "_bk_", bk);
+     kernel = get_quantized_kernel_wrapped(
+         d,
+         kname,
+@@ -746,28 +758,70 @@
+         group_size,
+         bits,
+         aligned,
++        batched,
++        bm,
++        bk,
++        bn);
++  } else if (transpose) {
 +    kernel = get_quantized_kernel_wrapped(
 +        d,
 +        kname,
@@ -174,15 +186,9 @@
 +        group_size,
 +        bits,
 +        aligned,
-+        batched,
-+        bm,
-+        bk,
-+        bn);
-+  } else if (transpose) {
+         batched);
+   } else {
      kernel = get_quantized_kernel_wrapped(
-         d,
-         kname,
-@@ -752,22 +778,50 @@
          d, kname, "qmm_n", mode, type_string, group_size, bits, batched);
    }
    auto& compute_encoder = d.get_command_encoder(s.index);
@@ -247,3 +253,23 @@
  }
  
  void gather_qmm(
+@@ -1313,6 +1367,9 @@
+   int N = out.shape(-1);
+ 
+   int vector_limit = transpose_ ? get_qmv_batch_limit(K, N, d) : 4;
++  // 9 rows (a speculative verify round of 9 tokens) run faster on the 16-row qmm tile
++  // (0.156 ms) than on the per-row qmv (0.25 ms) that the batch limit would pick.
++  if (transpose_ && M == 9) vector_limit = std::min(vector_limit, 9);
+   auto mode = quantization_mode_to_string(mode_);
+   // It is a matrix matrix product.
+   if (M >= vector_limit) {
+@@ -1374,6 +1431,9 @@
+   int B = out.size() / M / N;
+   int E = w.size() / w.shape(-1) / w.shape(-2);
+   int vector_limit = transpose_ ? get_qmv_batch_limit(K, N, d) : 4;
++  // 9 rows (a speculative verify round of 9 tokens) run faster on the 16-row qmm tile
++  // (0.156 ms) than on the per-row qmv (0.25 ms) that the batch limit would pick.
++  if (transpose_ && M == 9) vector_limit = std::min(vector_limit, 9);
+   auto mode = quantization_mode_to_string(mode_);
+ 
+   // We are walking x in order and w is also in order so we can batch up the
