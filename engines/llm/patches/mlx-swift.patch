@@ -1,0 +1,249 @@
+--- a/Source/Cmlx/mlx-generated/quantized.cpp
++++ b/Source/Cmlx/mlx-generated/quantized.cpp
+@@ -1771,6 +1771,64 @@
+         b_strides,
+         tid);
+   }
++  qmm_t_impl<T, group_size, bits, aligned_N, BM, BK, BN>(
++      w, scales, biases, x, y, Xs, Ws, K, N, M, tid, lid, simd_gid, simd_lid);
++}
++
++// affine_qmm_t over rows [row_off, row_off + M): x and y are offset by row_off rows.
++// The quantized matmul uses it to cover the last r rows of M = 32k + r (1 <= r <= 16)
++// with a 16-row tile while the stock 32-row tile covers rows [0, 32k). Each row is
++// computed by the same qmm_t_impl in the same order, so the output is unchanged.
++template <
++    typename T,
++    const int group_size,
++    const int bits,
++    const bool aligned_N,
++    const bool batched,
++    const int BM = 32,
++    const int BK = 32,
++    const int BN = 32>
++[[kernel]] void affine_qmm_t_off(
++    const device uint32_t* w [[buffer(0)]],
++    const device T* scales [[buffer(1)]],
++    const device T* biases [[buffer(2)]],
++    const device T* x [[buffer(3)]],
++    device T* y [[buffer(4)]],
++    const constant int& K [[buffer(5)]],
++    const constant int& N [[buffer(6)]],
++    const constant int& M [[buffer(7)]],
++    const constant int& x_batch_ndims [[buffer(8)]],
++    const constant int* x_shape [[buffer(9)]],
++    const constant int64_t* x_strides [[buffer(10)]],
++    const constant int& w_batch_ndims [[buffer(11)]],
++    const constant int* w_shape [[buffer(12)]],
++    const constant int64_t* w_strides [[buffer(13)]],
++    const constant int64_t* s_strides [[buffer(14)]],
++    const constant int64_t* b_strides [[buffer(15)]],
++    const constant int& row_off [[buffer(16)]],
++    uint3 tid [[threadgroup_position_in_grid]],
++    uint lid [[thread_index_in_threadgroup]],
++    uint simd_gid [[simdgroup_index_in_threadgroup]],
++    uint simd_lid [[thread_index_in_simdgroup]]) {
++  (void)lid;
++  (void)batched;
++  (void)x_batch_ndims;
++  (void)x_shape;
++  (void)x_strides;
++  (void)w_batch_ndims;
++  (void)w_shape;
++  (void)w_strides;
++  (void)s_strides;
++  (void)b_strides;
++
++  constexpr int BK_padded = (BK + 16 / sizeof(T));
++
++  threadgroup T Xs[BM * BK_padded];
++  threadgroup T Ws[BN * BK_padded];
++
++  x += row_off * K;
++  y += row_off * N;
++
+   qmm_t_impl<T, group_size, bits, aligned_N, BM, BK, BN>(
+       w, scales, biases, x, y, Xs, Ws, K, N, M, tid, lid, simd_gid, simd_lid);
+ }
+--- a/Source/Cmlx/mlx/mlx/backend/metal/kernels/quantized.h
++++ b/Source/Cmlx/mlx/mlx/backend/metal/kernels/quantized.h
+@@ -1758,6 +1758,64 @@
+         b_strides,
+         tid);
+   }
++  qmm_t_impl<T, group_size, bits, aligned_N, BM, BK, BN>(
++      w, scales, biases, x, y, Xs, Ws, K, N, M, tid, lid, simd_gid, simd_lid);
++}
++
++// affine_qmm_t over rows [row_off, row_off + M): x and y are offset by row_off rows.
++// The quantized matmul uses it to cover the last r rows of M = 32k + r (1 <= r <= 16)
++// with a 16-row tile while the stock 32-row tile covers rows [0, 32k). Each row is
++// computed by the same qmm_t_impl in the same order, so the output is unchanged.
++template <
++    typename T,
++    const int group_size,
++    const int bits,
++    const bool aligned_N,
++    const bool batched,
++    const int BM = 32,
++    const int BK = 32,
++    const int BN = 32>
++[[kernel]] void affine_qmm_t_off(
++    const device uint32_t* w [[buffer(0)]],
++    const device T* scales [[buffer(1)]],
++    const device T* biases [[buffer(2)]],
++    const device T* x [[buffer(3)]],
++    device T* y [[buffer(4)]],
++    const constant int& K [[buffer(5)]],
++    const constant int& N [[buffer(6)]],
++    const constant int& M [[buffer(7)]],
++    const constant int& x_batch_ndims [[buffer(8)]],
++    const constant int* x_shape [[buffer(9)]],
++    const constant int64_t* x_strides [[buffer(10)]],
++    const constant int& w_batch_ndims [[buffer(11)]],
++    const constant int* w_shape [[buffer(12)]],
++    const constant int64_t* w_strides [[buffer(13)]],
++    const constant int64_t* s_strides [[buffer(14)]],
++    const constant int64_t* b_strides [[buffer(15)]],
++    const constant int& row_off [[buffer(16)]],
++    uint3 tid [[threadgroup_position_in_grid]],
++    uint lid [[thread_index_in_threadgroup]],
++    uint simd_gid [[simdgroup_index_in_threadgroup]],
++    uint simd_lid [[thread_index_in_simdgroup]]) {
++  (void)lid;
++  (void)batched;
++  (void)x_batch_ndims;
++  (void)x_shape;
++  (void)x_strides;
++  (void)w_batch_ndims;
++  (void)w_shape;
++  (void)w_strides;
++  (void)s_strides;
++  (void)b_strides;
++
++  constexpr int BK_padded = (BK + 16 / sizeof(T));
++
++  threadgroup T Xs[BM * BK_padded];
++  threadgroup T Ws[BN * BK_padded];
++
++  x += row_off * K;
++  y += row_off * N;
++
+   qmm_t_impl<T, group_size, bits, aligned_N, BM, BK, BN>(
+       w, scales, biases, x, y, Xs, Ws, K, N, M, tid, lid, simd_gid, simd_lid);
+ }
+--- a/Source/Cmlx/mlx/mlx/backend/metal/quantized.cpp
++++ b/Source/Cmlx/mlx/mlx/backend/metal/quantized.cpp
+@@ -716,8 +716,20 @@
+   int wn = 2;
+   int bm = 32;
+   int bn = 32;
++  int bk = 32;
++  // 12 to 16 rows: a 16-row tile costs 0.62-0.75x of the 32-row one and computes
++  // every row the same way (same 32-wide k blocks in the same order).
++  if (transpose && M >= 12 && M <= 16) {
++    bm = 16;
++  }
++  // M = 32k + r with 1 <= r <= 16: the 32-row tile covers rows [0, 32k) and a 16-row
++  // tile the last r rows, instead of a mostly empty 32-row tile. Not for the LM head
++  // (very large N), where a tile costs the same whatever its row count.
++  int tail_rows = 0;
++  if (transpose && M > 32 && M % 32 >= 1 && M % 32 <= 16 && N < 100000 && B <= 1) {
++    tail_rows = M % 32;
++  }
+   MTL::Size group_dims(32, wn, wm);
+-  MTL::Size grid_dims((N + bn - 1) / bn, (M + bm - 1) / bm, B);
+ 
+   std::string kname;
+   kname.reserve(64);
+@@ -734,9 +746,23 @@
+       bits,
+       transpose ? (aligned ? "_alN_true" : "_alN_false") : "",
+       batched ? "_batch_1" : "_batch_0");
+-  std::string template_def;
+   MTL::ComputePipelineState* kernel;
+-  if (transpose) {
++  if (transpose && bm != 32) {
++    concatenate(kname, "_bm_", bm, "_bn_", bn, "_bk_", bk);
++    kernel = get_quantized_kernel_wrapped(
++        d,
++        kname,
++        "qmm_t",
++        mode,
++        type_string,
++        group_size,
++        bits,
++        aligned,
++        batched,
++        bm,
++        bk,
++        bn);
++  } else if (transpose) {
+     kernel = get_quantized_kernel_wrapped(
+         d,
+         kname,
+@@ -752,22 +778,50 @@
+         d, kname, "qmm_n", mode, type_string, group_size, bits, batched);
+   }
+   auto& compute_encoder = d.get_command_encoder(s.index);
+-  compute_encoder.set_compute_pipeline_state(kernel);
+ 
+-  int c = 0;
+-  compute_encoder.set_input_array(w, c++);
+-  compute_encoder.set_input_array(scales, c++);
+-  if (biases) {
+-    compute_encoder.set_input_array(*biases, c++);
+-  }
+-  compute_encoder.set_input_array(x, c++);
+-  compute_encoder.set_output_array(out, c++);
+-  compute_encoder.set_bytes(K, c++);
+-  compute_encoder.set_bytes(N, c++);
+-  compute_encoder.set_bytes(M, c++);
+-  add_strides_and_shapes(compute_encoder, B <= 1, x, w, scales, biases, c);
++  auto dispatch = [&](MTL::ComputePipelineState* k,
++                      MTL::Size grid_dims,
++                      int rows,
++                      int row_offset) {
++    compute_encoder.set_compute_pipeline_state(k);
++    int c = 0;
++    compute_encoder.set_input_array(w, c++);
++    compute_encoder.set_input_array(scales, c++);
++    if (biases) {
++      compute_encoder.set_input_array(*biases, c++);
++    }
++    compute_encoder.set_input_array(x, c++);
++    compute_encoder.set_output_array(out, c++);
++    compute_encoder.set_bytes(K, c++);
++    compute_encoder.set_bytes(N, c++);
++    compute_encoder.set_bytes(rows, c++);
++    add_strides_and_shapes(compute_encoder, B <= 1, x, w, scales, biases, c);
++    if (row_offset > 0) {
++      compute_encoder.set_bytes(row_offset, 16);
++    }
++    compute_encoder.dispatch_threadgroups(grid_dims, group_dims);
++  };
+ 
+-  compute_encoder.dispatch_threadgroups(grid_dims, group_dims);
++  if (tail_rows > 0) {
++    int head_rows = M - tail_rows;
++    dispatch(kernel, MTL::Size((N + bn - 1) / bn, head_rows / bm, B), head_rows, 0);
++    auto tail_kernel = get_quantized_kernel_wrapped(
++        d,
++        kname + "_off",
++        "qmm_t_off",
++        mode,
++        type_string,
++        group_size,
++        bits,
++        aligned,
++        batched,
++        16,
++        32,
++        32);
++    dispatch(tail_kernel, MTL::Size((N + bn - 1) / bn, 1, B), tail_rows, head_rows);
++    return;
++  }
++  dispatch(kernel, MTL::Size((N + bn - 1) / bn, (M + bm - 1) / bm, B), M, 0);
+ }
+ 
+ void gather_qmm(

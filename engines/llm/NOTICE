@@ -1,0 +1,7 @@
+- Sources/VoxtLLMEngine/VoxtReplica: copied from Voxt (sgl-project/sglang-omni, Voxt/, Apache-2.0)
+  so that the model is loaded and the request is built exactly as in Voxt.
+- vendor/mlx-swift (fetched by scripts/build.sh): ml-explore/mlx-swift 0.31.6, revision
+  0bb916c67f4b9e5c682cbe02a42c701c93ab5021 (MIT, Copyright Apple Inc.), with patches/mlx-swift.patch.
+- vendor/mlx-swift-lm (fetched by scripts/build.sh): ml-explore/mlx-swift-lm, revision
+  c6446cf7bfb7cea76408013b614d4b2c530eaa03 (MIT, Copyright Apple Inc.), with
+  patches/mlx-swift-lm.patch.
