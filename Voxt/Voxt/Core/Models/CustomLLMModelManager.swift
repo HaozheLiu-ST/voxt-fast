@@ -63,6 +63,10 @@ class CustomLLMModelManager: ObservableObject {
         }
     }
     private var inferenceModelRepo: String?
+    /// Requests for FastLLMEngine.supportedRepo with default decoding settings run on the bundled
+    /// engine process instead of an in-process container; `fastEngineRepo` is set while it runs.
+    private let fastEngine = FastLLMEngine()
+    private var fastEngineRepo: String?
     private let inferenceLoadCoordinator = SharedModelLoadCoordinator<ModelContainer>()
     private var lastLoggedModelPresence: (repo: String, downloaded: Bool)?
     private var lastInvalidRepoLogged: String?
@@ -109,13 +113,13 @@ class CustomLLMModelManager: ObservableObject {
     }
 
     var currentModelRepo: String { modelRepo }
-    var hasLoadedInferenceModel: Bool { inferenceContainer != nil }
+    var hasLoadedInferenceModel: Bool { inferenceContainer != nil || fastEngineRepo != nil }
     var hasPendingModelLoad: Bool { inferenceLoadCoordinator.hasPendingLoad }
     var hasOutstandingModelLoad: Bool { inferenceLoadCoordinator.hasOutstandingLoad }
     var hasActiveInference: Bool { activeInferenceCount > 0 }
 
     func refreshMemoryOptimizationPolicy() {
-        guard inferenceContainer != nil else {
+        guard inferenceContainer != nil || fastEngineRepo != nil else {
             cancelIdleUnloadTask()
             return
         }
@@ -125,7 +129,8 @@ class CustomLLMModelManager: ObservableObject {
 
     func isModelLoaded(repo: String) -> Bool {
         let canonicalRepo = Self.canonicalModelRepo(repo)
-        return inferenceContainer != nil && inferenceModelRepo == canonicalRepo
+        return (inferenceContainer != nil && inferenceModelRepo == canonicalRepo)
+            || fastEngineRepo == canonicalRepo
     }
 
     func prewarmModel(repo: String) async throws {
@@ -139,8 +144,51 @@ class CustomLLMModelManager: ObservableObject {
                     userInfo: [NSLocalizedDescriptionKey: "Custom LLM model is not installed locally."]
                 )
             }
+            let probe = CustomLLMRequestPlanBuilder.userPromptEnhancement(prompt: "warm-up", repo: canonicalRepo)
+            if let directory = fastEngineDirectory(for: probe) {
+                try await fastEngine.prepare(modelDirectory: directory)
+                fastEngineRepo = canonicalRepo
+                return
+            }
             _ = try await container(for: canonicalRepo)
         }
+    }
+
+    /// The model directory when `request` can run on the fast engine, nil otherwise.
+    private func fastEngineDirectory(for request: CustomLLMRequestPlan) -> URL? {
+        let behavior = CustomLLMModelBehaviorResolver.behavior(for: request.repo)
+        let settings = resolvedGenerationSettings(for: request.repo)
+        let params = CustomLLMRequestRuntime.generationParameters(
+            for: request, behavior: behavior, settings: settings, tuning: generationTuning)
+        guard request.conversationHistory.isEmpty,
+              Self.fastEngineSupports(repo: request.repo, parameters: params, settings: settings, tuning: generationTuning)
+        else { return nil }
+        return modelDirectoryURL(repo: request.repo)
+    }
+
+    /// Streams the request from the fast engine as `Generation` chunks.
+    private func fastEngineStream(
+        _ request: CustomLLMRequestPlan,
+        directory: URL,
+        maxTokens: Int
+    ) -> AsyncThrowingStream<Generation, Error> {
+        let engine = fastEngine
+        let (stream, continuation) = AsyncThrowingStream<Generation, Error>.makeStream()
+        let task = Task {
+            do {
+                _ = try await engine.generate(
+                    modelDirectory: directory,
+                    system: request.instructions,
+                    user: request.prompt,
+                    maxTokens: maxTokens
+                ) { continuation.yield(.chunk($0)) }
+                continuation.finish()
+            } catch {
+                continuation.finish(throwing: error)
+            }
+        }
+        continuation.onTermination = { _ in task.cancel() }
+        return stream
     }
 
     func enhance(userPrompt: String, repo: String) async throws -> String {
@@ -193,20 +241,34 @@ class CustomLLMModelManager: ObservableObject {
             }
 
             let overallStartedAt = Date()
-            let containerSnapshot = try await profiledContainer(for: request.repo)
-            let container = containerSnapshot.container
             let behavior = CustomLLMModelBehaviorResolver.behavior(for: request.repo)
             let settings = resolvedGenerationSettings(for: request.repo)
-            let session = CustomLLMRequestRuntime.makeChatSession(
-                container: container,
-                instructions: request.instructions,
-                conversationHistory: request.conversationHistory,
-                repo: request.repo,
-                behavior: behavior,
-                settings: settings
-            )
             let params = CustomLLMRequestRuntime.generationParameters(for: request, behavior: behavior, settings: settings, tuning: generationTuning)
-            session.generateParameters = params
+            let containerSnapshot: (source: CustomLLMContainerLoadSource, elapsedMs: Int)
+            let events: AsyncThrowingStream<Generation, Error>
+            if let directory = fastEngineDirectory(for: request), let maxTokens = params.maxTokens {
+                // The engine process holds the model; no in-process container is loaded.
+                let startedAt = Date()
+                let wasRunning = fastEngineRepo == request.repo
+                try await fastEngine.prepare(modelDirectory: directory)
+                fastEngineRepo = request.repo
+                containerSnapshot = (wasRunning ? .reusedLoaded : .loadedFromDisk,
+                                     Int(Date().timeIntervalSince(startedAt) * 1000))
+                events = fastEngineStream(request, directory: directory, maxTokens: maxTokens)
+            } else {
+                let loaded = try await profiledContainer(for: request.repo)
+                containerSnapshot = (loaded.source, loaded.elapsedMs)
+                let session = CustomLLMRequestRuntime.makeChatSession(
+                    container: loaded.container,
+                    instructions: request.instructions,
+                    conversationHistory: request.conversationHistory,
+                    repo: request.repo,
+                    behavior: behavior,
+                    settings: settings
+                )
+                session.generateParameters = params
+                events = session.streamDetails(to: request.prompt, images: [], videos: [])
+            }
 
             let modelStartedAt = Date()
             let setupMs = Int(modelStartedAt.timeIntervalSince(overallStartedAt) * 1000) - containerSnapshot.elapsedMs
@@ -219,11 +281,7 @@ class CustomLLMModelManager: ObservableObject {
             let repetitionGuard = LLMOutputRepetitionGuard()
             var partialDelivery = LocalLLMPartialDelivery()
             var lastPublishedPreview = ""
-            for try await event in session.streamDetails(
-                to: request.prompt,
-                images: [],
-                videos: []
-            ) {
+            for try await event in events {
                 try Task.checkCancellation()
                 switch event {
                 case .chunk(let chunk):
@@ -1279,9 +1337,9 @@ class CustomLLMModelManager: ObservableObject {
     }
 
     private func scheduleIdleUnloadIfNeeded() {
-        guard inferenceContainer != nil else { return }
+        guard inferenceContainer != nil || fastEngineRepo != nil else { return }
         idleUnloadTask?.cancel()
-        let expectedRepo = inferenceModelRepo
+        let expectedRepo = inferenceModelRepo ?? fastEngineRepo
         let delay = resolvedIdleUnloadDelay
         idleUnloadTask = Task { [weak self] in
             do {
@@ -1306,12 +1364,19 @@ class CustomLLMModelManager: ObservableObject {
         inferenceLoadCoordinator.cancelAll()
         inferenceContainer = nil
         inferenceModelRepo = nil
+        if fastEngineRepo != nil {
+            fastEngineRepo = nil
+            let engine = fastEngine
+            Task { await engine.stop() }
+        }
         Memory.clearCache()
     }
 
     private func unloadInferenceContainerIfIdle(expectedRepo: String?, reason: String) {
         guard activeInferenceCount == 0 else { return }
-        guard inferenceContainer != nil, inferenceModelRepo == expectedRepo else { return }
+        let containerMatches = inferenceContainer != nil && inferenceModelRepo == expectedRepo
+        let engineMatches = fastEngineRepo != nil && fastEngineRepo == expectedRepo
+        guard containerMatches || engineMatches else { return }
 
         releaseInferenceResources()
         VoxtLog.modelInfo(
