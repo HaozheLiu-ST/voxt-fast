@@ -5,6 +5,8 @@ Voxt Fast 是 macOS 听写应用 [Voxt](https://github.com/sgl-project/sglang-om
 - **语音识别**：Qwen3-ASR 1.7B（6 bit）的流式引擎。说话时，屏幕上的文字跟得更紧。
 - **文字润色**：Qwen3.5-4B-OptiQ（4 bit）的推理引擎。说完后，去口癖、改标点这一步更快完成。
 
+这是非官方改版，与 Voxt 和 SGLang-Omni 官方无关。
+
 两个引擎都是用 SoL-Pi-Swarm（多个 AI agent 协作优化代码的系统）在一台 M4 Pro 上自动优化出来的。优化过程中，模型权重、提示词和解码规则都没有改动。评分器会检查每个候选版本的输出是否与原版一致，不一致的版本记零分。
 
 ## 效果
