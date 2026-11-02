@@ -361,7 +361,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             AppPreferenceKey.translationRemoteLLMProvider: "",
             AppPreferenceKey.rewriteRemoteLLMProvider: "",
             AppPreferenceKey.launchAtLogin: false,
-            AppPreferenceKey.showInDock: true,
+            AppPreferenceKey.showInDock: false,
             AppPreferenceKey.historyEnabled: true,
             AppPreferenceKey.historyCleanupEnabled: true,
             AppPreferenceKey.historyRetentionPeriod: HistoryRetentionPeriod.ninetyDays.rawValue,
