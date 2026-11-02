@@ -438,6 +438,7 @@ struct OnboardingGuideView: View {
         if currentStep == .models {
             guard modelStepReady else { return }
             commitModelDraft()
+            downloadEnhancementModelIfNeeded()
         }
         currentStep = next
     }
