@@ -6,6 +6,40 @@ import AVFoundation
 import Speech
 
 extension AppDelegate {
+    /// Voxt Fast: like Doubao's voice input, dictation records from the Mac's built-in microphone
+    /// when the selected (or system default) input is a Bluetooth headset. Opening a headset's
+    /// microphone first switches it into call mode, and the first 0.3-2 s of speech are lost; the
+    /// headset keeps playing audio. With the lid closed, or on a Mac without a microphone, the
+    /// selection is kept. Meetings keep using `selectedInputDeviceID`.
+    /// `defaults write com.voxt.Voxt.fast VoxtFastUseBluetoothMicForDictation -bool true` turns it off.
+    static let useBluetoothMicForDictationKey = "VoxtFastUseBluetoothMicForDictation"
+
+    var dictationInputDeviceID: AudioDeviceID? {
+        let selected = selectedInputDeviceID
+        guard let replacement = Self.builtInReplacementForBluetoothInput(selected, defaults: .standard) else {
+            return selected
+        }
+        VoxtLog.audio(
+            "Dictation records from the built-in microphone instead of the Bluetooth input. "
+                + "selected=\(selected.map(String.init(describing:)) ?? "system-default"), builtIn=\(replacement.name)"
+        )
+        return replacement.id
+    }
+
+    /// The built-in microphone to use instead of `selected` (nil = system default), or nil to keep it.
+    static func builtInReplacementForBluetoothInput(
+        _ selected: AudioDeviceID?,
+        defaults: UserDefaults
+    ) -> AudioInputDevice? {
+        guard !defaults.bool(forKey: useBluetoothMicForDictationKey),
+              let effective = selected ?? AudioInputDeviceManager.defaultInputDeviceID(),
+              AudioInputDeviceManager.isBluetoothInputDevice(effective),
+              !AudioInputDeviceManager.isLidClosed(),
+              let builtIn = AudioInputDeviceManager.builtInInputDevice()
+        else { return nil }
+        return builtIn
+    }
+
     func startTrackedRecordingCaptureTask(
         _ operation: @escaping @MainActor () async -> Void
     ) {
@@ -56,7 +90,7 @@ extension AppDelegate {
         // No settings or interaction changes — same session path, earlier work.
         SileroVADModelProvisioner.prefetchIfNeeded(for: localVADMode)
         mlx.prewarmModelForUpcomingSession()
-        mlx.setPreferredInputDevice(selectedInputDeviceID)
+        mlx.setPreferredInputDevice(dictationInputDeviceID)
         mlx.onPartialTranscription = { [weak self] text in
             self?.handleLiveASRPartialTranscription(text, sessionID: sessionID)
         }
@@ -265,9 +299,10 @@ extension AppDelegate {
     }
 
     func applyPreferredInputDevice() {
-        speechTranscriber.setPreferredInputDevice(selectedInputDeviceID)
-        mlxTranscriber?.setPreferredInputDevice(selectedInputDeviceID)
-        remoteASRTranscriber.setPreferredInputDevice(selectedInputDeviceID)
+        let deviceID = dictationInputDeviceID
+        speechTranscriber.setPreferredInputDevice(deviceID)
+        mlxTranscriber?.setPreferredInputDevice(deviceID)
+        remoteASRTranscriber.setPreferredInputDevice(deviceID)
     }
 
     func handlePreferredInputDeviceChange(

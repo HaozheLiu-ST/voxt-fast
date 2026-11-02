@@ -2382,3 +2382,6 @@
 "API Format" = "API Format";
 
 "Automatic keeps OpenAI on Responses and respects explicit Chat Completions URLs for custom endpoints." = "Automatic keeps OpenAI on Responses and respects explicit Chat Completions URLs for custom endpoints.";
+
+/* Voxt Fast: tray microphone menu note */
+"Dictation uses the built-in microphone while a Bluetooth headset is selected" = "Dictation uses the built-in microphone while a Bluetooth headset is selected";

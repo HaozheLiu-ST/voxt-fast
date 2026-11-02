@@ -232,6 +232,19 @@ extension AppDelegate {
             submenu.addItem(item)
         }
 
+        if let selectedDevice = inputDevicesSnapshot.first(where: { $0.uid == resolvedSelectedUID }),
+           Self.builtInReplacementForBluetoothInput(selectedDevice.id, defaults: .standard) != nil {
+            // Voxt Fast: explain why dictation does not use the selected headset (dictationInputDeviceID).
+            submenu.addItem(NSMenuItem.separator())
+            let noteItem = NSMenuItem(
+                title: AppLocalization.localizedString("Dictation uses the built-in microphone while a Bluetooth headset is selected"),
+                action: nil,
+                keyEquivalent: ""
+            )
+            noteItem.isEnabled = false
+            submenu.addItem(noteItem)
+        }
+
         if inputDevicesSnapshot.isEmpty {
             let emptyItem = NSMenuItem(title: AppLocalization.localizedString("No microphone available"), action: nil, keyEquivalent: "")
             emptyItem.isEnabled = false

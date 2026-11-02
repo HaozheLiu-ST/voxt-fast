@@ -4,6 +4,7 @@
 import Foundation
 import CoreAudio
 import AVFoundation
+import IOKit
 
 struct AudioInputDevice: Identifiable, Hashable, Sendable {
     let id: AudioDeviceID
@@ -147,6 +148,39 @@ enum AudioInputDeviceManager {
 
     static func isAvailableInputDevice(_ deviceID: AudioDeviceID) -> Bool {
         snapshotAvailableInputDevices().contains(where: { $0.id == deviceID })
+    }
+
+    // MARK: Voxt Fast: dictation avoids Bluetooth microphones (AppDelegate.dictationInputDeviceID)
+
+    nonisolated static func transportType(deviceID: AudioDeviceID) -> UInt32? {
+        var propertyAddress = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyTransportType,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var value: UInt32 = 0
+        var dataSize = UInt32(MemoryLayout<UInt32>.size)
+        let status = AudioObjectGetPropertyData(deviceID, &propertyAddress, 0, nil, &dataSize, &value)
+        return status == noErr ? value : nil
+    }
+
+    nonisolated static func isBluetoothInputDevice(_ deviceID: AudioDeviceID) -> Bool {
+        guard let type = transportType(deviceID: deviceID) else { return false }
+        return type == kAudioDeviceTransportTypeBluetooth || type == kAudioDeviceTransportTypeBluetoothLE
+    }
+
+    /// The Mac's own microphone (MacBook, iMac), if it has one.
+    nonisolated static func builtInInputDevice() -> AudioInputDevice? {
+        snapshotAvailableInputDevices().first { transportType(deviceID: $0.id) == kAudioDeviceTransportTypeBuiltIn }
+    }
+
+    /// True while a MacBook's lid is closed; the built-in microphone hears nothing then.
+    nonisolated static func isLidClosed() -> Bool {
+        let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPMrootDomain"))
+        guard service != 0 else { return false }
+        defer { IOObjectRelease(service) }
+        let value = IORegistryEntryCreateCFProperty(service, "AppleClamshellState" as CFString, kCFAllocatorDefault, 0)
+        return (value?.takeRetainedValue() as? Bool) ?? false
     }
 
     nonisolated static func nominalSampleRate(for deviceID: AudioDeviceID?) -> Double? {

@@ -2376,3 +2376,6 @@
 "API Format" = "API 形式";
 
 "Automatic keeps OpenAI on Responses and respects explicit Chat Completions URLs for custom endpoints." = "自動では OpenAI に Responses を使用し、カスタムエンドポイントに明示した Chat Completions URL を維持します。";
+
+/* Voxt Fast: tray microphone menu note */
+"Dictation uses the built-in microphone while a Bluetooth headset is selected" = "Bluetooth ヘッドセット選択中も、音声入力は内蔵マイクを使用します";

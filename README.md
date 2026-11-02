@@ -55,6 +55,12 @@ Voxt Fast 是 macOS 听写应用 [Voxt](https://github.com/sgl-project/sglang-om
 选其他听写模型也能用，例如 Qwen3-ASR 0.6B 或 1.7B (8bit)。这些模型走 SGLang-Omni 原来的识别服务，速度与原版 Voxt 相同。如果你装过 v0.1.1 并选了 0.6B，升级后设置会保留，请在模型设置里改选 1.7B (6bit)。v0.1.1 里选 0.6B 会报“network connection was lost”，原因是识别引擎不支持该模型而崩溃，v0.1.2 已修复。
 - **快捷键**：如果要用自定义快捷键，先把快捷键预设改成“自定义”，否则启动时会被预设覆盖。
 
+**蓝牙耳机**：从 v0.1.3 起，如果听写选中的麦克风是 AirPods 等蓝牙耳机，并且笔记本开着盖，听写会改用 MacBook 内置麦克风，声音照常从耳机播放。这是豆包输入法的做法。原因是蓝牙耳机的麦克风打开时要先切到通话模式，开头 0.3–2 秒的话会录不到。合盖时仍用耳机麦克风；USB、有线麦克风不受影响；会议录音不受影响。托盘的麦克风菜单里会显示这条说明。如果一定要用耳机麦克风听写：
+
+```bash
+defaults write com.voxt.Voxt.fast VoxtFastUseBluetoothMicForDictation -bool true
+```
+
 确认引擎是否在工作：
 
 - 听写时，活动监视器里能看到 `asr_engine` 进程。
