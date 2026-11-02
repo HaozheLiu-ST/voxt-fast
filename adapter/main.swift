@@ -59,7 +59,11 @@ do {
     }
 }
 
-if modelKind != "qwen3_asr" {
+// asr_engine only runs Qwen3-ASR 1.7B (6-bit); other Qwen3-ASR checkpoints (0.6B, 8-bit, ...)
+// and every other model kind go to SGLang-Omni's own server at the original speed.
+let servesFastModel = modelKind == "qwen3_asr" &&
+    (modelDirectory.map { URL(fileURLWithPath: $0).lastPathComponent.lowercased().contains("qwen3-asr-1.7b-6bit") } ?? false)
+if !servesFastModel {
     let server = here.appendingPathComponent("qwen3_asr_server.sglang").path
     var argv: [UnsafeMutablePointer<CChar>?] = [strdup(server)]
     argv += CommandLine.arguments.dropFirst().map { strdup($0) }

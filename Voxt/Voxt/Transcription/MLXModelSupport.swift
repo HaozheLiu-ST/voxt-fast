@@ -199,7 +199,8 @@ struct MLXModelCatalog {
         let tagKeys: [String]
     }
 
-    nonisolated static let defaultModelRepo = "mlx-community/Qwen3-ASR-0.6B-4bit"
+    // Voxt Fast: the bundled fast engine runs this checkpoint (upstream default: Qwen3-ASR-0.6B-4bit).
+    nonisolated static let defaultModelRepo = "mlx-community/Qwen3-ASR-1.7B-6bit"
 
     nonisolated private static let whisperLanguageCodes: Set<String> = [
         "af", "am", "ar", "as", "az", "be", "bg", "bn", "bo", "br", "bs", "ca", "cs", "cy",

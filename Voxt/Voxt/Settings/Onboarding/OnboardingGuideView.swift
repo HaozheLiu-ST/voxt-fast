@@ -77,15 +77,15 @@ struct OnboardingGuideView: View {
     static let microphoneRequiredSignalFrames = 2
     static let microphoneStartupWatchdogDelay: Duration = .milliseconds(1200)
     static let collapsedModelListLimit = 3
+    // Voxt Fast: recommend the checkpoints the bundled fast engines run.
     static let preferredLocalASRRepos = [
-        "mlx-community/Qwen3-ASR-0.6B-4bit",
-        "mlx-community/Qwen3-ASR-1.7B-8bit",
+        "mlx-community/Qwen3-ASR-1.7B-6bit",
         "OpenMOSS-Team/MOSS-Transcribe-Diarize",
         "mlx-community/whisper-large-v3-turbo"
     ]
     static let preferredLocalLLMRepos = [
-        "mlx-community/gemma-4-e2b-it-4bit",
-        "mlx-community/Qwen3.5-4B-OptiQ-4bit"
+        "mlx-community/Qwen3.5-4B-OptiQ-4bit",
+        "mlx-community/gemma-4-e2b-it-4bit"
     ]
     static let preferredRemoteASRProviders: [RemoteASRProvider] = [
         .doubaoASR,

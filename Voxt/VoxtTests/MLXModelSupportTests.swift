@@ -36,7 +36,7 @@ final class MLXModelSupportTests: XCTestCase {
         )
         XCTAssertEqual(
             MLXModelCatalog.canonicalModelRepo("mlx-community/FireRedASR2"),
-            MLXModelCatalog.defaultModelRepo
+            "mlx-community/Qwen3-ASR-0.6B-4bit"
         )
         XCTAssertEqual(
             MLXModelCatalog.canonicalModelRepo("mlx-community/Qwen3-ASR-0.6B-4bit"),
