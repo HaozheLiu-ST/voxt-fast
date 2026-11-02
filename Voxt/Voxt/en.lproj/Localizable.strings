@@ -82,6 +82,8 @@
 "App Behavior" = "App Behavior";
 "Launch at Login" = "Launch at Login";
 "Show in Dock" = "Show in Dock";
+"Show main window on launch" = "Show main window on launch";
+"When off, Voxt starts in the menu bar only." = "When off, Voxt starts in the menu bar only.";
 "Shortcut" = "Shortcut";
 "Transcription" = "Transcription";
 "Record Transcription Shortcut" = "Record Transcription Shortcut";

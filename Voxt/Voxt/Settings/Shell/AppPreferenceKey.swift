@@ -120,6 +120,7 @@ enum AppPreferenceKey {
     static let customLLMRemoteSizeCache = "customLLMRemoteSizeCache"
     static let launchAtLogin = "launchAtLogin"
     static let showInDock = "showInDock"
+    static let showMainWindowOnLaunch = "showMainWindowOnLaunch"
     static let historyEnabled = "historyEnabled"
     static let historyCleanupEnabled = "historyCleanupEnabled"
     static let historyRetentionPeriod = "historyRetentionPeriod"

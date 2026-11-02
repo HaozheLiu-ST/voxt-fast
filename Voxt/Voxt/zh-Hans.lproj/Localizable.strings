@@ -82,6 +82,8 @@
 "App Behavior" = "应用行为";
 "Launch at Login" = "开机启动";
 "Show in Dock" = "在 Dock 中显示";
+"Show main window on launch" = "启动时显示主窗口";
+"When off, Voxt starts in the menu bar only." = "关闭时，Voxt 启动后只在菜单栏中运行。";
 "Shortcut" = "快捷键";
 "Transcription" = "转录";
 "Record Transcription Shortcut" = "录制转录快捷键";

@@ -27,6 +27,7 @@ struct GeneralSettingsView: View {
     @AppStorage(AppPreferenceKey.hotkeyDistinguishModifierSides) private var hotkeyDistinguishModifierSides = HotkeyPreference.defaultDistinguishModifierSides
     @AppStorage(AppPreferenceKey.launchAtLogin) private var launchAtLogin = false
     @AppStorage(AppPreferenceKey.showInDock) private var showInDock = false
+    @AppStorage(AppPreferenceKey.showMainWindowOnLaunch) private var showMainWindowOnLaunch = false
     @AppStorage(AppPreferenceKey.autoCheckForUpdates) private var autoCheckForUpdates = true
     @AppStorage(AppPreferenceKey.hotkeyDebugLoggingEnabled) private var hotkeyDebugLoggingEnabled = false
     @AppStorage(AppPreferenceKey.llmDebugLoggingEnabled) private var llmDebugLoggingEnabled = false
@@ -163,6 +164,7 @@ struct GeneralSettingsView: View {
                 customPasteHotkeyDisplayString: currentCustomPasteHotkeyDisplayString,
                 launchAtLogin: $launchAtLogin,
                 showInDock: $showInDock,
+                showMainWindowOnLaunch: $showMainWindowOnLaunch,
                 autoCheckForUpdates: $autoCheckForUpdates,
                 launchAtLoginError: launchAtLoginError
             )

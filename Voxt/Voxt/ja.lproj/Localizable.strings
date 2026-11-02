@@ -82,6 +82,8 @@
 "App Behavior" = "アプリ動作";
 "Launch at Login" = "ログイン時に起動";
 "Show in Dock" = "Dock に表示";
+"Show main window on launch" = "起動時にメインウィンドウを表示";
+"When off, Voxt starts in the menu bar only." = "オフの場合、Voxt はメニューバーのみで起動します。";
 "Shortcut" = "ショートカット";
 "Transcription" = "文字起こし";
 "Record Transcription Shortcut" = "文字起こしショートカットを記録";

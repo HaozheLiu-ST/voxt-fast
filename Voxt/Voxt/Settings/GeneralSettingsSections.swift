@@ -433,6 +433,7 @@ struct GeneralAppBehaviorCard: View {
     let customPasteHotkeyDisplayString: String
     @Binding var launchAtLogin: Bool
     @Binding var showInDock: Bool
+    @Binding var showMainWindowOnLaunch: Bool
     @Binding var autoCheckForUpdates: Bool
     let launchAtLoginError: String?
 
@@ -463,6 +464,12 @@ struct GeneralAppBehaviorCard: View {
             GeneralToggleRow(
                 title: localizedKey("Launch at Login"),
                 isOn: $launchAtLogin
+            )
+
+            GeneralToggleRow(
+                title: localizedKey("Show main window on launch"),
+                description: localizedKey("When off, Voxt starts in the menu bar only."),
+                isOn: $showMainWindowOnLaunch
             )
 
             GeneralToggleRow(
